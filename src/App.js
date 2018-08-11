@@ -29,7 +29,7 @@ class App extends Component {
         const reader = new window.FileReader();
         reader.readAsText(event.target.files[0]);
         reader.onload = event => {
-            const translations = [];
+            const translated = [];
             const defaultJson = JSON.parse(event.target.result);
             const {langs, defaultLang, needToTranslate} = defaultJson;
             for (let translation of needToTranslate) {
@@ -40,8 +40,9 @@ class App extends Component {
                         translationUnit[lang] = translation;
                     }
                 }
-                translations.push(translationUnit);
+                translated.push(translationUnit);
             }
+            const translations = {defaultLang, translated};
             const state = {langs, translations};
             Tools.setStorage('state', state);
             this.setState(state);
@@ -53,8 +54,9 @@ class App extends Component {
         reader.readAsText(event.target.files[0]);
         reader.onload = event => {
             const translations = JSON.parse(event.target.result);
-            if (translations && translations.length) {
-                const langs = Object.keys(translations[0]);
+            const {translated} = translations;
+            if (translated && translated.length) {
+                const langs = Object.keys(translated[0]);
                 const state = {langs, translations};
                 Tools.setStorage('state', state);
                 this.setState(state);
@@ -66,7 +68,8 @@ class App extends Component {
         return event => {
             const {value} = event.target;
             const {translations} = this.state;
-            translations[index][lang] = value;
+            const {translated} = translations;
+            translated[index][lang] = value;
             this.setState({translations});
         };
     }
@@ -98,18 +101,21 @@ class App extends Component {
     }
 
     demoTranslationsJson() {
-        const translations = [
-            {
-                vi: 'xin chào',
-                en: '',
-                fr: ''
-            },
-            {
-                vi: 'làm việc',
-                en: '',
-                fr: ''
-            }
-        ];
+        const translations = {
+            defaultLang: 'vi',
+            translated: [
+                {
+                    vi: 'xin chào',
+                    en: '',
+                    fr: ''
+                },
+                {
+                    vi: 'làm việc',
+                    en: '',
+                    fr: ''
+                }
+            ]
+        };
         const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(translations, null, 4));
         const dlAnchorElem = document.getElementById('demoTranslationsJson');
         dlAnchorElem.setAttribute('href', dataStr);
@@ -118,19 +124,20 @@ class App extends Component {
     }
 
     handleAdd() {
-        console.log('Add new');
         const {langs, translations} = this.state;
+        const {translated} = translations;
         const item = {};
         for (let lang of langs) {
             item[lang] = '';
         }
-        translations.unshift(item);
+        translated.unshift(item);
         this.setState({translations});
     }
 
     handleRemove(index) {
         const {translations} = this.state;
-        translations.splice(index, 1);
+        const {translated} = translations;
+        translated.splice(index, 1);
         this.setState({translations});
     }
 
@@ -156,10 +163,11 @@ class App extends Component {
 
     renderRows() {
         const {langs, translations} = this.state;
-        if (!langs || !translations) return null;
+        if (!langs || !translations || !translations.translated) return null;
+        const {translated} = translations;
         const langsWithRemoveButton = [...langs, 'Remove'];
         let index = -1;
-        return translations.map(translation => {
+        return translated.map(translation => {
             const renderRow = (translation, index) => {
                 return langsWithRemoveButton.map(
                     lang => {
